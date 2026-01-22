@@ -130,6 +130,13 @@ async def start_agent(
         count_testing_in_concurrency=count_testing,
     )
 
+    # Notify scheduler of manual start (to prevent auto-stop during scheduled window)
+    if success:
+        from ..services.scheduler_service import get_scheduler
+        project_dir = _get_project_path(project_name)
+        if project_dir:
+            get_scheduler().notify_manual_start(project_name, project_dir)
+
     return AgentActionResponse(
         success=success,
         status=manager.status,
@@ -143,6 +150,13 @@ async def stop_agent(project_name: str):
     manager = get_project_manager(project_name)
 
     success, message = await manager.stop()
+
+    # Notify scheduler of manual stop (to prevent auto-start during scheduled window)
+    if success:
+        from ..services.scheduler_service import get_scheduler
+        project_dir = _get_project_path(project_name)
+        if project_dir:
+            get_scheduler().notify_manual_stop(project_name, project_dir)
 
     return AgentActionResponse(
         success=success,

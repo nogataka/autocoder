@@ -143,6 +143,8 @@ export function useStopAgent(projectName: string) {
     mutationFn: () => api.stopAgent(projectName),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agent-status', projectName] })
+      // Invalidate schedule status to reflect manual stop override
+      queryClient.invalidateQueries({ queryKey: ['nextRun', projectName] })
     },
   })
 }
