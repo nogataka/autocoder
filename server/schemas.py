@@ -391,6 +391,22 @@ class ModelInfo(BaseModel):
     name: str
 
 
+class ProviderInfo(BaseModel):
+    """Information about an API provider."""
+    id: str
+    name: str
+    base_url: str | None = None
+    models: list[ModelInfo]
+    default_model: str
+    requires_auth: bool = False
+
+
+class ProvidersResponse(BaseModel):
+    """Response schema for available providers list."""
+    providers: list[ProviderInfo]
+    current: str
+
+
 class SettingsResponse(BaseModel):
     """Response schema for global settings."""
     yolo_mode: bool = False
@@ -400,6 +416,10 @@ class SettingsResponse(BaseModel):
     testing_agent_ratio: int = 1  # Regression testing agents (0-3)
     playwright_headless: bool = True
     batch_size: int = 3  # Features per coding agent batch (1-3)
+    api_provider: str = "claude"
+    api_base_url: str | None = None
+    api_has_auth_token: bool = False  # Never expose actual token
+    api_model: str | None = None
 
 
 class ModelsResponse(BaseModel):
@@ -415,12 +435,21 @@ class SettingsUpdate(BaseModel):
     testing_agent_ratio: int | None = None  # 0-3
     playwright_headless: bool | None = None
     batch_size: int | None = None  # Features per agent batch (1-3)
+    api_provider: str | None = None
+    api_base_url: str | None = None
+    api_auth_token: str | None = None  # Write-only, never returned
+    api_model: str | None = None
 
     @field_validator('model')
     @classmethod
-    def validate_model(cls, v: str | None) -> str | None:
-        if v is not None and v not in VALID_MODELS:
-            raise ValueError(f"Invalid model. Must be one of: {VALID_MODELS}")
+    def validate_model(cls, v: str | None, info) -> str | None:  # type: ignore[override]
+        if v is not None:
+            # Skip VALID_MODELS check when using an alternative API provider
+            api_provider = info.data.get("api_provider")
+            if api_provider and api_provider != "claude":
+                return v
+            if v not in VALID_MODELS:
+                raise ValueError(f"Invalid model. Must be one of: {VALID_MODELS}")
         return v
 
     @field_validator('testing_agent_ratio')

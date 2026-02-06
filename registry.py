@@ -612,3 +612,120 @@ def get_all_settings() -> dict[str, str]:
     except Exception as e:
         logger.warning("Failed to read settings: %s", e)
         return {}
+
+
+# =============================================================================
+# API Provider Definitions
+# =============================================================================
+
+API_PROVIDERS: dict[str, dict[str, Any]] = {
+    "claude": {
+        "name": "Claude (Anthropic)",
+        "base_url": None,
+        "requires_auth": False,
+        "models": [
+            {"id": "claude-opus-4-5-20251101", "name": "Claude Opus 4.5"},
+            {"id": "claude-sonnet-4-5-20250929", "name": "Claude Sonnet 4.5"},
+        ],
+        "default_model": "claude-opus-4-5-20251101",
+    },
+    "kimi": {
+        "name": "Kimi K2.5 (Moonshot)",
+        "base_url": "https://api.kimi.com/coding/",
+        "requires_auth": True,
+        "auth_env_var": "ANTHROPIC_API_KEY",
+        "models": [{"id": "kimi-k2.5", "name": "Kimi K2.5"}],
+        "default_model": "kimi-k2.5",
+    },
+    "glm": {
+        "name": "GLM (Zhipu AI)",
+        "base_url": "https://api.z.ai/api/anthropic",
+        "requires_auth": True,
+        "auth_env_var": "ANTHROPIC_AUTH_TOKEN",
+        "models": [
+            {"id": "glm-4.7", "name": "GLM 4.7"},
+            {"id": "glm-4.5-air", "name": "GLM 4.5 Air"},
+        ],
+        "default_model": "glm-4.7",
+    },
+    "ollama": {
+        "name": "Ollama (Local)",
+        "base_url": "http://localhost:11434",
+        "requires_auth": False,
+        "models": [
+            {"id": "qwen3-coder", "name": "Qwen3 Coder"},
+            {"id": "deepseek-coder-v2", "name": "DeepSeek Coder V2"},
+        ],
+        "default_model": "qwen3-coder",
+    },
+    "custom": {
+        "name": "Custom Provider",
+        "base_url": "",
+        "requires_auth": True,
+        "auth_env_var": "ANTHROPIC_AUTH_TOKEN",
+        "models": [],
+        "default_model": "",
+    },
+}
+
+
+def get_effective_sdk_env() -> dict[str, str]:
+    """Build environment variable dict for Claude SDK based on current API provider settings.
+
+    When api_provider is "claude" (or unset), falls back to existing env vars (current behavior).
+    For other providers, builds env dict from stored settings (api_base_url, api_auth_token, api_model).
+
+    Returns:
+        Dict ready to merge into subprocess env or pass to SDK.
+    """
+    all_settings = get_all_settings()
+    provider_id = all_settings.get("api_provider", "claude")
+
+    if provider_id == "claude":
+        # Default behavior: forward existing env vars
+        from env_constants import API_ENV_VARS
+        sdk_env: dict[str, str] = {}
+        for var in API_ENV_VARS:
+            value = os.getenv(var)
+            if value:
+                sdk_env[var] = value
+        return sdk_env
+
+    # Alternative provider: build env from settings
+    provider = API_PROVIDERS.get(provider_id)
+    if not provider:
+        logger.warning("Unknown API provider '%s', falling back to claude", provider_id)
+        from env_constants import API_ENV_VARS
+        sdk_env = {}
+        for var in API_ENV_VARS:
+            value = os.getenv(var)
+            if value:
+                sdk_env[var] = value
+        return sdk_env
+
+    sdk_env = {}
+
+    # Base URL
+    base_url = all_settings.get("api_base_url") or provider.get("base_url")
+    if base_url:
+        sdk_env["ANTHROPIC_BASE_URL"] = base_url
+
+    # Auth token
+    auth_token = all_settings.get("api_auth_token")
+    if auth_token:
+        auth_env_var = provider.get("auth_env_var", "ANTHROPIC_AUTH_TOKEN")
+        sdk_env[auth_env_var] = auth_token
+
+    # Model - set all three tier overrides to the same model
+    model = all_settings.get("api_model") or provider.get("default_model")
+    if model:
+        sdk_env["ANTHROPIC_DEFAULT_OPUS_MODEL"] = model
+        sdk_env["ANTHROPIC_DEFAULT_SONNET_MODEL"] = model
+        sdk_env["ANTHROPIC_DEFAULT_HAIKU_MODEL"] = model
+
+    # Timeout
+    timeout = all_settings.get("api_timeout_ms")
+    if timeout:
+        sdk_env["API_TIMEOUT_MS"] = timeout
+
+    return sdk_env

@@ -4,7 +4,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import * as api from '../lib/api'
-import type { FeatureCreate, FeatureUpdate, ModelsResponse, ProjectSettingsUpdate, Settings, SettingsUpdate } from '../lib/types'
+import type { FeatureCreate, FeatureUpdate, ModelsResponse, ProjectSettingsUpdate, ProvidersResponse, Settings, SettingsUpdate } from '../lib/types'
 
 // ============================================================================
 // Projects
@@ -268,6 +268,27 @@ const DEFAULT_SETTINGS: Settings = {
   testing_agent_ratio: 1,
   playwright_headless: true,
   batch_size: 3,
+  api_provider: 'claude',
+  api_base_url: null,
+  api_has_auth_token: false,
+  api_model: null,
+}
+
+const DEFAULT_PROVIDERS: ProvidersResponse = {
+  providers: [
+    { id: 'claude', name: 'Claude (Anthropic)', base_url: null, models: DEFAULT_MODELS.models, default_model: 'claude-opus-4-5-20251101', requires_auth: false },
+  ],
+  current: 'claude',
+}
+
+export function useAvailableProviders() {
+  return useQuery({
+    queryKey: ['available-providers'],
+    queryFn: api.getAvailableProviders,
+    staleTime: 300000,
+    retry: 1,
+    placeholderData: DEFAULT_PROVIDERS,
+  })
 }
 
 export function useAvailableModels() {
@@ -319,6 +340,8 @@ export function useUpdateSettings() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['settings'] })
+      queryClient.invalidateQueries({ queryKey: ['available-models'] })
+      queryClient.invalidateQueries({ queryKey: ['available-providers'] })
     },
   })
 }

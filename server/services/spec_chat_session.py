@@ -140,16 +140,11 @@ class SpecChatSession:
         system_cli = shutil.which("claude")
 
         # Build environment overrides for API configuration
-        # Filter to only include vars that are actually set (non-None)
-        sdk_env: dict[str, str] = {}
-        for var in API_ENV_VARS:
-            value = os.getenv(var)
-            if value:
-                sdk_env[var] = value
+        from registry import get_effective_sdk_env
+        sdk_env = get_effective_sdk_env()
 
-        # Determine model from environment or use default
-        # This allows using alternative APIs (e.g., GLM via z.ai) that may not support Claude model names
-        model = os.getenv("ANTHROPIC_DEFAULT_OPUS_MODEL", "claude-opus-4-5-20251101")
+        # Determine model from SDK env (provider-aware) or fallback to env/default
+        model = sdk_env.get("ANTHROPIC_DEFAULT_OPUS_MODEL") or os.getenv("ANTHROPIC_DEFAULT_OPUS_MODEL", "claude-opus-4-5-20251101")
 
         try:
             self.client = ClaudeSDKClient(

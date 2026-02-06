@@ -227,6 +227,46 @@ class AgentProcessManager:
         """Remove lock file."""
         self.lock_file.unlink(missing_ok=True)
 
+    def _cleanup_stale_features(self) -> None:
+        """Clear in_progress flag for all features when agent stops/crashes.
+
+        When the agent process exits (normally or crash), any features left
+        with in_progress=True were being worked on and didn't complete.
+        Reset them so they can be picked up on next agent start.
+        """
+        try:
+            from autoforge_paths import get_features_db_path
+            features_db = get_features_db_path(self.project_dir)
+            if not features_db.exists():
+                return
+
+            from sqlalchemy import create_engine
+            from sqlalchemy.orm import sessionmaker
+
+            from api.database import Feature
+
+            engine = create_engine(f"sqlite:///{features_db}")
+            Session = sessionmaker(bind=engine)
+            session = Session()
+            try:
+                stuck = session.query(Feature).filter(
+                    Feature.in_progress == True,  # noqa: E712
+                    Feature.passes == False,  # noqa: E712
+                ).all()
+                if stuck:
+                    for f in stuck:
+                        f.in_progress = False
+                    session.commit()
+                    logger.info(
+                        "Cleaned up %d stuck feature(s) for %s",
+                        len(stuck), self.project_name,
+                    )
+            finally:
+                session.close()
+                engine.dispose()
+        except Exception as e:
+            logger.warning("Failed to cleanup features for %s: %s", self.project_name, e)
+
     async def _broadcast_output(self, line: str) -> None:
         """Broadcast output line to all registered callbacks."""
         with self._callbacks_lock:
@@ -288,6 +328,7 @@ class AgentProcessManager:
                     self.status = "crashed"
                 elif self.status == "running":
                     self.status = "stopped"
+                self._cleanup_stale_features()
                 self._remove_lock()
 
     async def start(
@@ -359,12 +400,22 @@ class AgentProcessManager:
             # stdin=DEVNULL prevents blocking if Claude CLI or child process tries to read stdin
             # CREATE_NO_WINDOW on Windows prevents console window pop-ups
             # PYTHONUNBUFFERED ensures output isn't delayed
+            # Build subprocess environment with API provider settings
+            from registry import get_effective_sdk_env
+            api_env = get_effective_sdk_env()
+            subprocess_env = {
+                **os.environ,
+                "PYTHONUNBUFFERED": "1",
+                "PLAYWRIGHT_HEADLESS": "true" if playwright_headless else "false",
+                **api_env,
+            }
+
             popen_kwargs: dict[str, Any] = {
                 "stdin": subprocess.DEVNULL,
                 "stdout": subprocess.PIPE,
                 "stderr": subprocess.STDOUT,
                 "cwd": str(self.project_dir),
-                "env": {**os.environ, "PYTHONUNBUFFERED": "1", "PLAYWRIGHT_HEADLESS": "true" if playwright_headless else "false"},
+                "env": subprocess_env,
             }
             if sys.platform == "win32":
                 popen_kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
@@ -425,6 +476,7 @@ class AgentProcessManager:
                 result.children_terminated, result.children_killed
             )
 
+            self._cleanup_stale_features()
             self._remove_lock()
             self.status = "stopped"
             self.process = None
@@ -502,6 +554,7 @@ class AgentProcessManager:
         if poll is not None:
             # Process has terminated
             if self.status in ("running", "paused"):
+                self._cleanup_stale_features()
                 self.status = "crashed"
                 self._remove_lock()
             return False

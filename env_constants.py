@@ -15,6 +15,7 @@ API_ENV_VARS: list[str] = [
     # Core API configuration
     "ANTHROPIC_BASE_URL",              # Custom API endpoint (e.g., https://api.z.ai/api/anthropic)
     "ANTHROPIC_AUTH_TOKEN",            # API authentication token
+    "ANTHROPIC_API_KEY",               # API key (used by Kimi and other providers)
     "API_TIMEOUT_MS",                  # Request timeout in milliseconds
     # Model tier overrides
     "ANTHROPIC_DEFAULT_SONNET_MODEL",  # Model override for Sonnet
