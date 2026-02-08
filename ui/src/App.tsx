@@ -302,13 +302,12 @@ function App() {
                         onClick={() => setShowSettings(true)}
                         variant="outline"
                         size="sm"
-                        title="Settings (,)"
                         aria-label="Open Settings"
                       >
                         <Settings size={18} />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>Settings</TooltipContent>
+                    <TooltipContent>Settings (,)</TooltipContent>
                   </Tooltip>
 
                   <Tooltip>
@@ -323,7 +322,7 @@ function App() {
                         <RotateCcw size={18} />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>Reset</TooltipContent>
+                    <TooltipContent>Reset (R)</TooltipContent>
                   </Tooltip>
 
                   {/* Ollama Mode Indicator */}
