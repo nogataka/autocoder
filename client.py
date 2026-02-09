@@ -446,6 +446,9 @@ def create_client(
         mcp_servers["playwright"] = {
             "command": "npx",
             "args": playwright_args,
+            "env": {
+                "NODE_COMPILE_CACHE": "",  # Disable V8 compile caching to prevent .node file accumulation in %TEMP%
+            },
         }
 
     # Build environment overrides for API endpoint configuration

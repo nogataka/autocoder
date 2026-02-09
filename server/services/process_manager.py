@@ -410,6 +410,7 @@ class AgentProcessManager:
                 **os.environ,
                 "PYTHONUNBUFFERED": "1",
                 "PLAYWRIGHT_HEADLESS": "true" if playwright_headless else "false",
+                "NODE_COMPILE_CACHE": "",  # Disable V8 compile caching to prevent .node file accumulation in %TEMP%
                 **api_env,
             }
 

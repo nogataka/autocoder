@@ -846,7 +846,7 @@ class ParallelOrchestrator:
                 "encoding": "utf-8",
                 "errors": "replace",
                 "cwd": str(self.project_dir),  # Run from project dir so CLI creates .claude/ in project
-                "env": {**os.environ, "PYTHONUNBUFFERED": "1"},
+                "env": {**os.environ, "PYTHONUNBUFFERED": "1", "NODE_COMPILE_CACHE": ""},
             }
             if sys.platform == "win32":
                 popen_kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
@@ -909,7 +909,7 @@ class ParallelOrchestrator:
                 "encoding": "utf-8",
                 "errors": "replace",
                 "cwd": str(self.project_dir),  # Run from project dir so CLI creates .claude/ in project
-                "env": {**os.environ, "PYTHONUNBUFFERED": "1"},
+                "env": {**os.environ, "PYTHONUNBUFFERED": "1", "NODE_COMPILE_CACHE": ""},
             }
             if sys.platform == "win32":
                 popen_kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
@@ -1013,7 +1013,7 @@ class ParallelOrchestrator:
                     "encoding": "utf-8",
                     "errors": "replace",
                     "cwd": str(self.project_dir),  # Run from project dir so CLI creates .claude/ in project
-                    "env": {**os.environ, "PYTHONUNBUFFERED": "1"},
+                    "env": {**os.environ, "PYTHONUNBUFFERED": "1", "NODE_COMPILE_CACHE": ""},
                 }
                 if sys.platform == "win32":
                     popen_kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
@@ -1074,7 +1074,7 @@ class ParallelOrchestrator:
             "encoding": "utf-8",
             "errors": "replace",
             "cwd": str(AUTOFORGE_ROOT),
-            "env": {**os.environ, "PYTHONUNBUFFERED": "1"},
+            "env": {**os.environ, "PYTHONUNBUFFERED": "1", "NODE_COMPILE_CACHE": ""},
         }
         if sys.platform == "win32":
             popen_kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
@@ -1160,6 +1160,19 @@ class ParallelOrchestrator:
                 debug_log.log("CLEANUP", f"Error killing process tree for {agent_type} agent", error=str(e))
             self._on_agent_complete(feature_id, proc.returncode, agent_type, proc)
 
+    def _run_inter_session_cleanup(self):
+        """Run lightweight cleanup between agent sessions.
+
+        Removes stale temp files and project screenshots to prevent
+        disk space accumulation during long overnight runs.
+        """
+        try:
+            from temp_cleanup import cleanup_project_screenshots, cleanup_stale_temp
+            cleanup_stale_temp()
+            cleanup_project_screenshots(self.project_dir)
+        except Exception as e:
+            debug_log.log("CLEANUP", f"Inter-session cleanup failed (non-fatal): {e}")
+
     def _signal_agent_completed(self):
         """Signal that an agent has completed, waking the main loop.
 
@@ -1235,6 +1248,8 @@ class ParallelOrchestrator:
                 pid=proc.pid,
                 feature_id=feature_id,
                 status=status)
+            # Run lightweight cleanup between sessions
+            self._run_inter_session_cleanup()
             # Signal main loop that an agent slot is available
             self._signal_agent_completed()
             return
@@ -1301,6 +1316,8 @@ class ParallelOrchestrator:
         else:
             print(f"Feature #{feature_id} {status}", flush=True)
 
+        # Run lightweight cleanup between sessions
+        self._run_inter_session_cleanup()
         # Signal main loop that an agent slot is available
         self._signal_agent_completed()
 
