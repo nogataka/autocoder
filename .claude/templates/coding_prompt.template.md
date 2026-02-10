@@ -90,13 +90,13 @@ Use browser automation tools:
 
 - Navigate to the app in a real browser
 - Interact like a human user (click, type, scroll)
-- Take screenshots at each step
+- Take screenshots at each step (use inline screenshots only -- do NOT save screenshot files to disk)
 - Verify both functionality AND visual appearance
 
 **DO:**
 
 - Test through the UI with clicks and keyboard input
-- Take screenshots to verify visual appearance
+- Take screenshots to verify visual appearance (inline only, never save to disk)
 - Check for console errors in browser
 - Verify complete user workflows end-to-end
 
@@ -193,6 +193,8 @@ Before context fills up:
 ## BROWSER AUTOMATION
 
 Use Playwright MCP tools (`browser_*`) for UI verification. Key tools: `navigate`, `click`, `type`, `fill_form`, `take_screenshot`, `console_messages`, `network_requests`. All tools have auto-wait built in.
+
+**Screenshot rule:** Always use inline mode (base64). NEVER save screenshots as files to disk.
 
 Test like a human user with mouse and keyboard. Use `browser_console_messages` to detect errors. Don't bypass UI with JavaScript evaluation.
 

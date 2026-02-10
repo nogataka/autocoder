@@ -445,6 +445,16 @@ export async function getDevServerConfig(projectName: string): Promise<DevServer
   return fetchJSON(`/projects/${encodeURIComponent(projectName)}/devserver/config`)
 }
 
+export async function updateDevServerConfig(
+  projectName: string,
+  customCommand: string | null
+): Promise<DevServerConfig> {
+  return fetchJSON(`/projects/${encodeURIComponent(projectName)}/devserver/config`, {
+    method: 'PATCH',
+    body: JSON.stringify({ custom_command: customCommand }),
+  })
+}
+
 // ============================================================================
 // Terminal API
 // ============================================================================

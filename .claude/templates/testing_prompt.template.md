@@ -31,14 +31,14 @@ For the feature returned:
 1. Read and understand the feature's verification steps
 2. Navigate to the relevant part of the application
 3. Execute each verification step using browser automation
-4. Take screenshots to document the verification
+4. Take screenshots to document the verification (inline only -- do NOT save to disk)
 5. Check for console errors
 
 Use browser automation tools:
 
 **Navigation & Screenshots:**
 - browser_navigate - Navigate to a URL
-- browser_take_screenshot - Capture screenshot (use for visual verification)
+- browser_take_screenshot - Capture screenshot (inline mode only -- never save to disk)
 - browser_snapshot - Get accessibility tree snapshot
 
 **Element Interaction:**
@@ -79,7 +79,7 @@ A regression has been introduced. You MUST fix it:
 
 4. **Verify the fix:**
    - Run through all verification steps again
-   - Take screenshots confirming the fix
+   - Take screenshots confirming the fix (inline only, never save to disk)
 
 5. **Mark as passing after fix:**
    ```
@@ -110,7 +110,7 @@ A regression has been introduced. You MUST fix it:
 All interaction tools have **built-in auto-wait** -- no manual timeouts needed.
 
 - `browser_navigate` - Navigate to URL
-- `browser_take_screenshot` - Capture screenshot
+- `browser_take_screenshot` - Capture screenshot (inline only, never save to disk)
 - `browser_snapshot` - Get accessibility tree
 - `browser_click` - Click elements
 - `browser_type` - Type text

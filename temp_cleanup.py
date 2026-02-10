@@ -37,11 +37,12 @@ DIR_PATTERNS = [
     "mongodb-memory-server*",           # MongoDB Memory Server binaries
     "ng-*",                             # Angular CLI temp directories
     "scoped_dir*",                      # Chrome/Chromium temp directories
+    "node-compile-cache",               # Node.js V8 compile cache directory
 ]
 
 # File patterns to clean up (glob patterns)
 FILE_PATTERNS = [
-    ".78912*.node",   # Node.js native module cache (major space consumer, ~7MB each)
+    ".[0-9a-f]*.node",   # Node.js/V8 compile cache files (~7MB each, varying hex prefixes)
     "claude-*-cwd",   # Claude CLI working directory temp files
     "mat-debug-*.log",  # Material/Angular debug logs
 ]
@@ -118,6 +119,54 @@ def cleanup_stale_temp(max_age_seconds: int = MAX_AGE_SECONDS) -> dict:
             f"Temp cleanup: {stats['dirs_deleted']} dirs, "
             f"{stats['files_deleted']} files, {mb_freed:.1f} MB freed"
         )
+
+    return stats
+
+
+def cleanup_project_screenshots(project_dir: Path, max_age_seconds: int = 300) -> dict:
+    """
+    Clean up stale screenshot files from the project root.
+
+    Playwright browser verification can leave .png files in the project
+    directory. This removes them after they've aged out (default 5 minutes).
+
+    Args:
+        project_dir: Path to the project directory.
+        max_age_seconds: Maximum age in seconds before a screenshot is deleted.
+                        Defaults to 5 minutes (300 seconds).
+
+    Returns:
+        Dictionary with cleanup statistics (files_deleted, bytes_freed, errors).
+    """
+    cutoff_time = time.time() - max_age_seconds
+    stats: dict = {"files_deleted": 0, "bytes_freed": 0, "errors": []}
+
+    screenshot_patterns = [
+        "feature*-*.png",
+        "screenshot-*.png",
+        "step-*.png",
+    ]
+
+    for pattern in screenshot_patterns:
+        for item in project_dir.glob(pattern):
+            if not item.is_file():
+                continue
+            try:
+                mtime = item.stat().st_mtime
+                if mtime < cutoff_time:
+                    size = item.stat().st_size
+                    item.unlink(missing_ok=True)
+                    if not item.exists():
+                        stats["files_deleted"] += 1
+                        stats["bytes_freed"] += size
+                        logger.debug(f"Deleted project screenshot: {item}")
+            except Exception as e:
+                stats["errors"].append(f"Failed to delete {item}: {e}")
+                logger.debug(f"Failed to delete screenshot {item}: {e}")
+
+    if stats["files_deleted"] > 0:
+        mb_freed = stats["bytes_freed"] / (1024 * 1024)
+        logger.info(f"Screenshot cleanup: {stats['files_deleted']} files, {mb_freed:.1f} MB freed")
 
     return stats
 
