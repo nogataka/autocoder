@@ -141,7 +141,6 @@ def get_extra_read_paths() -> list[Path]:
 # overhead and preventing agents from calling tools meant for other roles.
 #
 # Tools intentionally omitted from ALL agent lists (UI/orchestrator only):
-#   feature_get_ready, feature_get_blocked, feature_get_graph,
 #   feature_remove_dependency
 #
 # The ghost tool "feature_release_testing" was removed entirely -- it was
@@ -151,6 +150,9 @@ CODING_AGENT_TOOLS = [
     "mcp__features__feature_get_stats",
     "mcp__features__feature_get_by_id",
     "mcp__features__feature_get_summary",
+    "mcp__features__feature_get_ready",
+    "mcp__features__feature_get_blocked",
+    "mcp__features__feature_get_graph",
     "mcp__features__feature_claim_and_get",
     "mcp__features__feature_mark_in_progress",
     "mcp__features__feature_mark_passing",
@@ -163,12 +165,18 @@ TESTING_AGENT_TOOLS = [
     "mcp__features__feature_get_stats",
     "mcp__features__feature_get_by_id",
     "mcp__features__feature_get_summary",
+    "mcp__features__feature_get_ready",
+    "mcp__features__feature_get_blocked",
+    "mcp__features__feature_get_graph",
     "mcp__features__feature_mark_passing",
     "mcp__features__feature_mark_failing",
 ]
 
 INITIALIZER_AGENT_TOOLS = [
     "mcp__features__feature_get_stats",
+    "mcp__features__feature_get_ready",
+    "mcp__features__feature_get_blocked",
+    "mcp__features__feature_get_graph",
     "mcp__features__feature_create_bulk",
     "mcp__features__feature_create",
     "mcp__features__feature_add_dependency",

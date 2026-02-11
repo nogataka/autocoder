@@ -83,9 +83,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   }
 
   const handleSaveCustomBaseUrl = () => {
-    const effectiveBaseUrl = customBaseUrlInput || settings?.api_base_url || ''
-    if (effectiveBaseUrl.trim() && !updateSettings.isPending) {
-      updateSettings.mutate({ api_base_url: effectiveBaseUrl.trim() })
+    if (customBaseUrlInput.trim() && !updateSettings.isPending) {
+      updateSettings.mutate({ api_base_url: customBaseUrlInput.trim() })
       setCustomBaseUrlInput('')
     }
   }
@@ -299,7 +298,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         variant="ghost"
                         size="sm"
                         className="h-auto py-0.5 px-2 text-xs shrink-0"
-                        onClick={() => setCustomBaseUrlInput(settings.api_base_url || ' ')}
+                        onClick={() => setCustomBaseUrlInput(settings.api_base_url || '')}
                       >
                         Change
                       </Button>
@@ -309,7 +308,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     <div className="flex gap-2">
                       <input
                         type="text"
-                        value={customBaseUrlInput.trim()}
+                        value={customBaseUrlInput}
                         onChange={(e) => setCustomBaseUrlInput(e.target.value)}
                         placeholder={currentProvider === 'azure' ? 'https://your-resource.services.ai.azure.com/anthropic' : 'https://api.example.com/v1'}
                         className="flex-1 py-1.5 px-3 text-sm border rounded-md bg-background"
